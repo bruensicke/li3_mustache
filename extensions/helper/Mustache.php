@@ -46,11 +46,11 @@ class Mustache extends \lithium\template\Helper {
 	 *
 	 * @param string $name name of the element, below views/mustache
 	 * @param string $data an array or object what to hand to the mustache layer
-	 * @param string $options additional options, currently none
+	 * @param string $options additional options, to put into the view()->render()
 	 * @return string the rendered mustache template
 	 */
 	public function render($name, $data = array(), $options = array()) {
-		$template = $this->template($name);
+		$template = $this->template($name, $data, $options);
 		$partials = $this->partials($template);
 		$data = $this->_extract($data);
 		return new Must($template, $data, $partials);
@@ -63,17 +63,19 @@ class Mustache extends \lithium\template\Helper {
 	 * @param string $params additional params to put into the view()->render()
 	 * @return string the rendered element with (hopefully) the mustache template in it
 	 */
-	public function template($name, $params = array()) {
-		return $this->_view()->render(array('mustache' => $name), $params);
+	public function template($name, $data = array(), $params = array()) {
+		return $this->_view()->render(array('mustache' => $name), $data, $params);
 	}
 
 	/**
 	 * generates a valid Mustache partials array for given $template
 	 *
 	 * @param string $template mustache template with partials in it
+	 * @param array $data an array or object to hand to the mustache layer
+	 * @param array $options additional options, to put into the view()->render()
 	 * @return array an associative array containing all partials
 	 */
-	public function partials($template) {
+	public function partials($template, $data = array(), $options = array()) {
 		$result = array();
 		$regex = sprintf(
 			'/(?:(?<=\\n)[ \\t]*)?%s(?:(?P<type>[%s])(?P<tag_name>.+?)|=(?P<delims>.*?)=)%s\\n?/s',
@@ -82,7 +84,7 @@ class Mustache extends \lithium\template\Helper {
 		preg_match_all($regex, $template, $matches);
 		if (!empty($matches['tag_name'])) {
 			foreach ($matches['tag_name'] as $name) {
-				$result[$name] = $this->template($name);
+				$result[$name] = $this->template($name, $data, $options);
 			}
 		}
 		return $result;
@@ -118,13 +120,13 @@ class Mustache extends \lithium\template\Helper {
 	 * to be used clientside with javascript.
 	 *
 	 * @param string $name Name of template to include
-	 * @param string $options additional options, currently none
+	 * @param string $options additional options, to put into the view()->render()
 	 * @return string the script-tag with correct attributes and template
 	 */
 	public function script($name, $options = array()) {
 		$defaults = array('name' => 'tpl_' . Inflector::slug($name, '_'));
 		$options += $defaults;
-		$options += array('template' => $this->template($name));
+		$options += array('template' => $this->template($name, array(), $options));
 		$scriptblock = '<script id="{:name}" type="text/html" charset="utf-8">{:template}</script>';
 		return String::insert($scriptblock, $options);
 	}
